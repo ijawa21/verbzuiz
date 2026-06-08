@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>불규칙동사 퀴즈</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d2e;
+    --card2: #222538;
+    --accent: #7c6ff7;
+    --accent2: #ff7eb3;
+    --green: #4ade80;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --text: #e8e9f3;
+    --muted: #8b8fa8;
+    --border: #2e3150;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+
+  /* bg decoration */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; left: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,111,247,0.15) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -150px; right: -150px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(255,126,179,0.1) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #app { width: 100%; max-width: 580px; position: relative; z-index: 1; }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+  .logo {
+    font-size: 22px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .progress-wrap { display: flex; align-items: center; gap: 10px; }
+  .progress-text { font-size: 13px; color: var(--muted); font-weight: 700; }
+  .progress-bar-bg {
+    width: 120px; height: 6px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 99px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  /* verb display */
+  .verb-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .verb-word {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, #fff 30%, var(--muted));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .verb-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+
+  /* input fields */
+  .fields { display: flex; flex-direction: column; gap: 14px; }
+  .field-row { display: flex; flex-direction: column; gap: 6px; }
+  .field-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .field-input {
+    background: var(--card2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 16px;
+    font-family: 'Nunito', sans-serif;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    width: 100%;
+    -webkit-appearance: none;
+  }
+  .field-input:focus {
+    border-color: var(--accent);
+    background: #252840;
+  }
+  .field-input.correct {
+    border-color: var(--green);
+    background: rgba(74,222,128,0.08);
+    color: var(--green);
+  }
+  .field-input.wrong {
+    border-color: var(--red);
+    background: rgba(248,113,113,0.08);
+    color: var(--red);
+  }
+  .field-input:disabled { cursor: default; }
+
+  /* answer reveal */
+  .answer-reveal {
+    font-size: 12px;
+    margin-top: 4px;
+    height: 18px;
+    transition: opacity 0.3s;
+  }
+  .answer-reveal.show-correct { color: var(--green); opacity: 1; }
+  .answer-reveal.show-wrong   { color: var(--red);   opacity: 1; }
+  .answer-reveal.hidden       { opacity: 0; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .btn:focus-visible { box-shadow: 0 0 0 3px rgba(124,111,247,0.5); }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #5b52d4);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(124,111,247,0.35);
+  }
+  .btn-primary:hover { opacity: 0.92; box-shadow: 0 6px 24px rgba(124,111,247,0.5); }
+
+  .btn-next {
+    background: linear-gradient(135deg, #2e3150, #3a3e62);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-next:hover { background: linear-gradient(135deg, #363b60, #444878); }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-retry {
+    background: linear-gradient(135deg, var(--accent2), #d4538f);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(255,126,179,0.3);
+  }
+  .btn-retry:hover { opacity: 0.92; }
+
+  .btn-group { display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── FEEDBACK PANEL ── */
+  .feedback-panel {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-top: 16px;
+    display: none;
+    animation: slideDown 0.3s ease;
+  }
+  .feedback-panel.visible { display: block; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .feedback-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .feedback-score {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .feedback-score span {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--text);
+  }
+  .recommended-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .recommended-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+  .example-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent2);
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .example-en {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 4px;
+  }
+  .example-ko {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ── SCORE SCREEN ── */
+  #score-screen { display: none; }
+  .score-emoji {
+    font-size: 80px;
+    text-align: center;
+    margin-bottom: 12px;
+    animation: bounce 0.6s ease;
+  }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); }
+    40%      { transform: translateY(-20px); }
+    70%      { transform: translateY(-8px); }
+  }
+  .score-big {
+    text-align: center;
+    font-size: 72px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .score-label {
+    text-align: center;
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .score-comment {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+  .score-detail {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  .score-stat {
+    text-align: center;
+  }
+  .score-stat-num {
+    font-size: 28px;
+    font-weight: 900;
+  }
+  .score-stat-num.c { color: var(--green); }
+  .score-stat-num.w { color: var(--red); }
+  .score-stat-lbl {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* wrong list */
+  .wrong-list {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+  }
+  .wrong-list-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--red);
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+  .wrong-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .wrong-item:last-child { border-bottom: none; }
+  .wrong-verb { font-weight: 800; color: var(--text); min-width: 80px; }
+  .wrong-fields { color: var(--muted); font-size: 12px; }
+
+  /* ── START SCREEN ── */
+  #start-screen .card { text-align: center; padding: 40px 28px; }
+  .start-emoji { font-size: 56px; margin-bottom: 16px; }
+  .start-title { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+  .start-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+  .start-count {
+    display: inline-block;
+    background: rgba(124,111,247,0.15);
+    border: 1px solid rgba(124,111,247,0.3);
+    border-radius: 99px;
+    padding: 4px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+
+  /* hidden */
+  .hidden { display: none !important; }
+
+  /* small score badge in quiz */
+  .live-score {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    margin-top: 8px;
+  }
+  .live-score span { color: var(--accent); font-weight: 800; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- START SCREEN -->
+  <div id="start-screen">
+    <div class="card">
+      <div class="start-emoji">📚</div>
+      <div class="start-title">불규칙동사 퀴즈</div>
+      <div class="start-sub">동사 원형을 보고<br>과거형 · 과거분사형 · 뜻을 입력하세요</div>
+      <div class="start-count">총 43개 동사</div>
+      <button class="btn btn-primary" id="btn-start" tabindex="1">시작하기 ▶</button>
+    </div>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quiz-screen" class="hidden">
+    <div class="header">
+      <div class="logo">VERB QUIZ</div>
+      <div class="progress-wrap">
+        <div class="progress-text" id="progress-text">0 / 43</div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progress-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="verb-label">동사 원형</div>
+      <div class="verb-word" id="verb-display">—</div>
+      <div class="verb-sub">과거형 · 과거분사형 · 뜻을 입력하세요</div>
+
+      <div class="fields">
+        <div class="field-row">
+          <div class="field-label">과거형 (Past)</div>
+          <input class="field-input" id="inp-past" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" tabindex="2" placeholder="과거형을 입력하세요">
+          <div class="answer-reveal hidden" id="rev-past"></div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">과거분사형 (Past Participle)</div>
+          <input class="field-input" id="inp-pp" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" tabindex="3" placeholder="과거분사형을 입력하세요">
+          <div class="answer-reveal hidden" id="rev-pp"></div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">뜻 (Korean)</div>
+          <input class="field-input" id="inp-meaning" type="text" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="4" placeholder="뜻을 입력하세요">
+          <div class="answer-reveal hidden" id="rev-meaning"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-check" tabindex="5">정답 확인</button>
+
+    <div class="feedback-panel" id="feedback-panel">
+      <div class="feedback-row">
+        <div class="feedback-score">이번 문제: <span id="q-score">0</span>/3점</div>
+        <div class="live-score">누적: <span id="live-score">0</span>점</div>
+      </div>
+      <div class="recommended-label">추천 뜻</div>
+      <div class="recommended-val" id="fb-meaning"></div>
+      <div class="example-label">예문</div>
+      <div class="example-en" id="fb-example-en"></div>
+      <div class="example-ko" id="fb-example-ko"></div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <button class="btn btn-next hidden" id="btn-next" tabindex="6">다음 →</button>
+    </div>
+  </div>
+
+  <!-- SCORE SCREEN -->
+  <div id="score-screen">
+    <div class="card">
+      <div class="score-emoji" id="score-emoji"></div>
+      <div class="score-big" id="score-num"></div>
+      <div class="score-label">/ 100점</div>
+      <div class="score-comment" id="score-comment"></div>
+      <div class="score-detail">
+        <div class="score-stat">
+          <div class="score-stat-num c" id="stat-correct"></div>
+          <div class="score-stat-lbl">정답</div>
+        </div>
+        <div class="score-stat">
+          <div class="score-stat-num w" id="stat-wrong"></div>
+          <div class="score-stat-lbl">오답</div>
+        </div>
+        <div class="score-stat">
+          <div class="score-stat-num" style="color:var(--muted)" id="stat-total"></div>
+          <div class="score-stat-lbl">전체</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrong-list hidden" id="wrong-list">
+      <div class="wrong-list-title">❌ 틀린 항목</div>
+      <div id="wrong-items"></div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" id="btn-retry-all" tabindex="1">🔄 전체 다시 풀기</button>
+      <button class="btn btn-retry" id="btn-retry-wrong" tabindex="2">❌ 틀린 것만 다시 풀기</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const WORDS = [
+  { verb:"beat",    past:"beat",     pp:"beaten",    meaning:"이기다",    recommended:"이기다 / (북 등을) 치다",    exEn:"Our team beat the other team 3 to 1.",         exKo:"우리 팀이 상대 팀을 3대 1로 이겼다." },
+  { verb:"bite",    past:"bit",      pp:"bitten",    meaning:"물다",      recommended:"물다",                        exEn:"The dog bit the boy's hand.",                  exKo:"개가 소년의 손을 물었다." },
+  { verb:"blow",    past:"blew",     pp:"blown",     meaning:"불다",      recommended:"불다",                        exEn:"The wind blew all the leaves away.",            exKo:"바람이 나뭇잎을 모두 날려버렸다." },
+  { verb:"break",   past:"broke",    pp:"broken",    meaning:"부수다",    recommended:"부수다 / 깨다",               exEn:"He broke the window by mistake.",              exKo:"그는 실수로 창문을 깼다." },
+  { verb:"bring",   past:"brought",  pp:"brought",   meaning:"가져오다",  recommended:"가져오다",                    exEn:"She brought some cookies for everyone.",        exKo:"그녀는 모두를 위해 쿠키를 가져왔다." },
+  { verb:"build",   past:"built",    pp:"built",     meaning:"건설하다",  recommended:"짓다 / 건설하다",             exEn:"They built a new school in our town.",          exKo:"그들은 우리 마을에 새 학교를 지었다." },
+  { verb:"buy",     past:"bought",   pp:"bought",    meaning:"사다",      recommended:"사다",                        exEn:"I bought a new bag at the market.",             exKo:"나는 시장에서 새 가방을 샀다." },
+  { verb:"catch",   past:"caught",   pp:"caught",    meaning:"잡다",      recommended:"잡다 / (버스·기차를) 타다",   exEn:"He caught the ball with one hand.",             exKo:"그는 한 손으로 공을 잡았다." },
+  { verb:"choose",  past:"chose",    pp:"chosen",    meaning:"선택하다",  recommended:"선택하다 / 고르다",           exEn:"She chose the red dress for the party.",        exKo:"그녀는 파티를 위해 빨간 드레스를 골랐다." },
+  { verb:"draw",    past:"drew",     pp:"drawn",     meaning:"그리다",    recommended:"그리다",                      exEn:"He drew a map of the neighborhood.",            exKo:"그는 동네 지도를 그렸다." },
+  { verb:"drink",   past:"drank",    pp:"drunk",     meaning:"마시다",    recommended:"마시다",                      exEn:"She drank two glasses of water.",               exKo:"그녀는 물 두 잔을 마셨다." },
+  { verb:"drive",   past:"drove",    pp:"driven",    meaning:"운전하다",  recommended:"운전하다",                    exEn:"My dad drove me to school today.",              exKo:"아빠가 오늘 나를 학교까지 태워다 주셨다." },
+  { verb:"fall",    past:"fell",     pp:"fallen",    meaning:"떨어지다",  recommended:"떨어지다 / 넘어지다",         exEn:"The apple fell from the tree.",                exKo:"사과가 나무에서 떨어졌다." },
+  { verb:"feed",    past:"fed",      pp:"fed",       meaning:"먹이다",    recommended:"먹이다 / 먹을 것을 주다",     exEn:"She fed the ducks at the pond.",               exKo:"그녀는 연못에서 오리들에게 먹이를 주었다." },
+  { verb:"feel",    past:"felt",     pp:"felt",      meaning:"느끼다",    recommended:"느끼다",                      exEn:"I felt very happy when I heard the news.",     exKo:"나는 그 소식을 들었을 때 매우 기뻤다." },
+  { verb:"fight",   past:"fought",   pp:"fought",    meaning:"싸우다",    recommended:"싸우다",                      exEn:"The two boys fought over the toy.",             exKo:"두 남자아이가 장난감 때문에 싸웠다." },
+  { verb:"fly",     past:"flew",     pp:"flown",     meaning:"날다",      recommended:"날다",                        exEn:"The bird flew over the river.",                exKo:"새가 강 위를 날아갔다." },
+  { verb:"forget",  past:"forgot",   pp:"forgotten", meaning:"잊다",      recommended:"잊다 / 잊어버리다",           exEn:"I forgot to bring my homework.",               exKo:"나는 숙제를 가져오는 것을 잊었다." },
+  { verb:"forgive", past:"forgave",  pp:"forgiven",  meaning:"용서하다",  recommended:"용서하다",                    exEn:"She forgave him for breaking her favorite mug.", exKo:"그녀는 그가 머그잔을 깬 것을 용서했다." },
+  { verb:"think",   past:"thought",  pp:"thought",   meaning:"생각하다",  recommended:"생각하다",                    exEn:"I thought about the problem all night.",       exKo:"나는 밤새 그 문제를 생각했다." },
+  { verb:"get",     past:"got",      pp:"gotten",    meaning:"얻다",      recommended:"얻다 / 받다 / ~하게 되다",    exEn:"I got a perfect score on the math test.",      exKo:"나는 수학 시험에서 만점을 받았다." },
+  { verb:"give",    past:"gave",     pp:"given",     meaning:"주다",      recommended:"주다",                        exEn:"He gave me a beautiful birthday card.",         exKo:"그는 나에게 예쁜 생일 카드를 주었다." },
+  { verb:"grow",    past:"grew",     pp:"grown",     meaning:"자라다",    recommended:"자라다 / 성장하다",           exEn:"The sunflowers grew very tall this summer.",   exKo:"해바라기가 이번 여름에 매우 크게 자랐다." },
+  { verb:"hang",    past:"hung",     pp:"hung",      meaning:"매달다",    recommended:"걸다 / 매달다",               exEn:"She hung her coat on the hook.",               exKo:"그녀는 코트를 걸이에 걸었다." },
+  { verb:"hide",    past:"hid",      pp:"hidden",    meaning:"숨다",      recommended:"숨다 / 숨기다",               exEn:"The cat hid under the bed.",                   exKo:"고양이가 침대 밑에 숨었다." },
+  { verb:"hold",    past:"held",     pp:"held",      meaning:"잡다",      recommended:"잡다 / 들다 / (행사를) 열다", exEn:"She held her little sister's hand tightly.",   exKo:"그녀는 여동생의 손을 꼭 잡았다." },
+  { verb:"keep",    past:"kept",     pp:"kept",      meaning:"유지하다",  recommended:"유지하다 / 계속 ~하다",       exEn:"Keep the door closed, please.",                exKo:"문을 닫아 두세요." },
+  { verb:"know",    past:"knew",     pp:"known",     meaning:"알다",      recommended:"알다",                        exEn:"She knew the answer right away.",              exKo:"그녀는 바로 정답을 알았다." },
+  { verb:"carry",   past:"carried",  pp:"carried",   meaning:"나르다",    recommended:"나르다 / 운반하다",           exEn:"He carried the heavy box upstairs.",           exKo:"그는 무거운 상자를 위층으로 날랐다." },
+  { verb:"skip",    past:"skipped",  pp:"skipped",   meaning:"건너뛰다",  recommended:"건너뛰다 / 빠뜨리다",         exEn:"She skipped the last question on the test.",   exKo:"그녀는 시험에서 마지막 문제를 건너뛰었다." },
+  { verb:"leave",   past:"left",     pp:"left",      meaning:"떠나다",    recommended:"떠나다 / 남겨 두다",          exEn:"He left home early in the morning.",           exKo:"그는 아침 일찍 집을 떠났다." },
+  { verb:"mistake", past:"mistook",  pp:"mistaken",  meaning:"오해하다",  recommended:"오해하다 / 착각하다",         exEn:"I mistook her for her twin sister.",            exKo:"나는 그녀를 쌍둥이 언니로 착각했다." },
+  { verb:"lie",     past:"lay",      pp:"lain",      meaning:"눕다",      recommended:"눕다\n★ lie - lied - lied: 거짓말하다", exEn:"She lay on the grass and looked at the sky.", exKo:"그녀는 풀밭에 누워 하늘을 바라봤다." },
+  { verb:"ride",    past:"rode",     pp:"ridden",    meaning:"타다",      recommended:"타다 (자전거·말 등)",         exEn:"I rode my bike to the park.",                  exKo:"나는 자전거를 타고 공원에 갔다." },
+  { verb:"ring",    past:"rang",     pp:"rung",      meaning:"울리다",    recommended:"울리다 / 전화하다",           exEn:"The school bell rang at 8 o'clock.",           exKo:"학교 종이 8시에 울렸다." },
+  { verb:"rise",    past:"rose",     pp:"risen",     meaning:"일어나다",  recommended:"오르다 / 떠오르다",           exEn:"The sun rises in the east every morning.",     exKo:"태양은 매일 아침 동쪽에서 떠오른다." },
+  { verb:"sell",    past:"sold",     pp:"sold",      meaning:"팔다",      recommended:"팔다",                        exEn:"The store sold out of the new sneakers fast.", exKo:"그 가게는 새 운동화가 빨리 다 팔렸다." },
+  { verb:"shake",   past:"shook",    pp:"shaken",    meaning:"흔들다",    recommended:"흔들다 / 악수하다",           exEn:"She shook the bottle before opening it.",      exKo:"그녀는 병을 열기 전에 흔들었다." },
+  { verb:"hurt",    past:"hurt",     pp:"hurt",      meaning:"다치다",    recommended:"다치다 / 아프다",             exEn:"I hurt my knee when I fell off my bike.",      exKo:"자전거에서 떨어졌을 때 무릎을 다쳤다." },
+  { verb:"shoot",   past:"shot",     pp:"shot",      meaning:"쏘다",      recommended:"쏘다",                        exEn:"The player shot the ball into the goal.",      exKo:"선수가 골대 안으로 공을 쏘아 넣었다." },
+  { verb:"quit",    past:"quit",     pp:"quit",      meaning:"그만두다",  recommended:"그만두다",                    exEn:"He quit the soccer team after the season.",    exKo:"그는 시즌이 끝난 후 축구팀을 그만뒀다." },
+  { verb:"steal",   past:"stole",    pp:"stolen",    meaning:"훔치다",    recommended:"훔치다",                      exEn:"Someone stole my umbrella at school.",         exKo:"학교에서 누군가가 내 우산을 훔쳐갔다." },
+  { verb:"speak",   past:"spoke",    pp:"spoken",    meaning:"말하다",    recommended:"말하다 / (언어를) 구사하다",  exEn:"She spoke to the class about her trip.",       exKo:"그녀는 반 친구들에게 자신의 여행에 대해 말했다." },
+];
+
+// ── TTS ──
+function speak(text, onEnd) {
+  try {
+    if (!window.speechSynthesis) { onEnd && onEnd(); return; }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.9;
+    u.onerror = () => { onEnd && onEnd(); };
+    if (onEnd) u.onend = onEnd;
+    window.speechSynthesis.speak(u);
+  } catch(e) {
+    onEnd && onEnd();
+  }
+}
+
+function speakAfterCheck(past, pp) {
+  try {
+    speak(past, () => { setTimeout(() => speak(pp), 1000); });
+  } catch(e) {}
+}
+
+// ── State ──
+let queue = [];
+let current = null;
+let currentIdx = 0;
+let totalQuestions = 0;
+let correctCount = 0;
+let wrongItems = []; // {verb, fields:[{label,yours,answer}]}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+// ── DOM refs ──
+const startScreen  = document.getElementById('start-screen');
+const quizScreen   = document.getElementById('quiz-screen');
+const scoreScreen  = document.getElementById('score-screen');
+const verbDisplay  = document.getElementById('verb-display');
+const inpPast      = document.getElementById('inp-past');
+const inpPP        = document.getElementById('inp-pp');
+const inpMeaning   = document.getElementById('inp-meaning');
+const revPast      = document.getElementById('rev-past');
+const revPP        = document.getElementById('rev-pp');
+const revMeaning   = document.getElementById('rev-meaning');
+const btnCheck     = document.getElementById('btn-check');
+const btnNext      = document.getElementById('btn-next');
+const feedbackPanel= document.getElementById('feedback-panel');
+const progressText = document.getElementById('progress-text');
+const progressBar  = document.getElementById('progress-bar');
+const liveScore    = document.getElementById('live-score');
+
+// ── Init quiz ──
+function startQuiz(words) {
+  queue = shuffle(words);
+  currentIdx = 0;
+  totalQuestions = queue.length * 3;
+  correctCount = 0;
+  wrongItems = [];
+  liveScore.textContent = '0';
+
+  startScreen.classList.add('hidden');
+  scoreScreen.style.display = 'none';
+  quizScreen.classList.remove('hidden');
+
+  loadQuestion();
+}
+
+function loadQuestion() {
+  if (currentIdx >= queue.length) {
+    showScore();
+    return;
+  }
+  current = queue[currentIdx];
+
+  verbDisplay.textContent = current.verb;
+  updateProgress();
+
+  // reset inputs
+  [inpPast, inpPP, inpMeaning].forEach(el => {
+    el.value = '';
+    el.disabled = false;
+    el.className = 'field-input';
+  });
+  [revPast, revPP, revMeaning].forEach(el => {
+    el.textContent = '';
+    el.className = 'answer-reveal hidden';
+  });
+
+  feedbackPanel.classList.remove('visible');
+  btnNext.classList.add('hidden');
+  btnCheck.classList.remove('hidden');
+
+  // speak verb & focus
+  speak(current.verb);
+  setTimeout(() => inpPast.focus(), 50);
+}
+
+function updateProgress() {
+  const done = currentIdx;
+  const total = queue.length;
+  progressText.textContent = `${done} / ${total}`;
+  progressBar.style.width = total > 0 ? `${(done/total)*100}%` : '0%';
+}
+
+// Enter key submits / advances
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (!btnCheck.classList.contains('hidden')) {
+      btnCheck.click();
+    } else if (!btnNext.classList.contains('hidden')) {
+      btnNext.click();
+    }
+    // score screen
+    const retryAll = document.getElementById('btn-retry-all');
+    if (scoreScreen.style.display !== 'none' && document.activeElement === retryAll) {
+      retryAll.click();
+    }
+  }
+});
+
+function gradeField(input, reveal, userVal, correctVal) {
+  const correct = userVal.trim() === correctVal.trim();
+  if (correct) {
+    input.classList.add('correct');
+    reveal.textContent = '✓ 정답!';
+    reveal.className = 'answer-reveal show-correct';
+  } else {
+    input.classList.add('wrong');
+    reveal.textContent = `✗  정답: ${correctVal}`;
+    reveal.className = 'answer-reveal show-wrong';
+  }
+  input.disabled = true;
+  return correct ? 1 : 0;
+}
+
+btnCheck.addEventListener('click', () => {
+  const w = current;
+  let qCorrect = 0;
+  const wrongFields = [];
+
+  const r1 = gradeField(inpPast,    revPast,    inpPast.value,    w.past);
+  const r2 = gradeField(inpPP,      revPP,      inpPP.value,      w.pp);
+  const r3 = gradeField(inpMeaning, revMeaning, inpMeaning.value, w.meaning);
+
+  qCorrect = r1 + r2 + r3;
+  correctCount += qCorrect;
+
+  if (r1 === 0) wrongFields.push({ label:'과거형',    yours: inpPast.value,    answer: w.past });
+  if (r2 === 0) wrongFields.push({ label:'과거분사형', yours: inpPP.value,      answer: w.pp });
+  if (r3 === 0) wrongFields.push({ label:'뜻',         yours: inpMeaning.value, answer: w.meaning });
+
+  if (wrongFields.length > 0) {
+    wrongItems.push({ verb: w.verb, fields: wrongFields });
+  }
+
+  // feedback
+  document.getElementById('q-score').textContent = qCorrect;
+  const totalSoFar = (currentIdx + 1) * 3;
+  const pct = Math.round((correctCount / totalSoFar) * 100);
+  liveScore.textContent = pct;
+
+  document.getElementById('fb-meaning').textContent = w.recommended;
+  document.getElementById('fb-example-en').textContent = w.exEn;
+  document.getElementById('fb-example-ko').textContent = w.exKo;
+  feedbackPanel.classList.add('visible');
+
+  btnCheck.classList.add('hidden');
+  currentIdx++;
+  updateProgress();
+  btnNext.classList.remove('hidden');
+  speakAfterCheck(w.past, w.pp);
+  setTimeout(() => btnNext.focus(), 50);
+});
+
+btnNext.addEventListener('click', () => {
+  loadQuestion();
+});
+
+// ── Score screen ──
+function showScore() {
+  quizScreen.classList.add('hidden');
+  scoreScreen.style.display = 'block';
+
+  const total = queue.length * 3;
+  const pct = Math.round((correctCount / total) * 100);
+
+  document.getElementById('score-num').textContent = pct;
+  document.getElementById('stat-correct').textContent = correctCount;
+  document.getElementById('stat-wrong').textContent = total - correctCount;
+  document.getElementById('stat-total').textContent = total;
+
+  let emoji, comment;
+  if (pct === 100) {
+    emoji = '🏆'; comment = '완벽해! 진짜 천재인 것 같은데?! 🎉';
+  } else if (pct >= 90) {
+    emoji = '🤩'; comment = '거의 다 맞았어! 조금만 더 하면 완벽!';
+  } else if (pct >= 80) {
+    emoji = '😎'; comment = '잘했어! 틀린 것만 조금 더 연습해봐~';
+  } else if (pct >= 70) {
+    emoji = '🙂'; comment = '꽤 잘했는데? 한 번 더 도전해보자!';
+  } else if (pct >= 60) {
+    emoji = '😅'; comment = '절반 이상은 맞혔어! 조금 더 힘내자 💪';
+  } else if (pct >= 40) {
+    emoji = '😬'; comment = '아직 많이 남았어. 틀린 것 위주로 다시 해봐!';
+  } else {
+    emoji = '😭'; comment = '오늘은 좀 힘들었나봐... 다시 한번만 해보자! 넌 할 수 있어!!';
+  }
+
+  document.getElementById('score-emoji').textContent = emoji;
+  document.getElementById('score-comment').textContent = comment;
+
+  // wrong list
+  const wrongList = document.getElementById('wrong-list');
+  const wrongItemsEl = document.getElementById('wrong-items');
+  const retryWrongBtn = document.getElementById('btn-retry-wrong');
+
+  if (wrongItems.length > 0) {
+    wrongList.classList.remove('hidden');
+    wrongItemsEl.innerHTML = wrongItems.map(wi =>
+      `<div class="wrong-item">
+        <span class="wrong-verb">${wi.verb}</span>
+        <span class="wrong-fields">${wi.fields.map(f => `${f.label}: <b style="color:var(--red)">${f.yours||'(미입력)'}</b> → <b style="color:var(--green)">${f.answer}</b>`).join(' &nbsp;|&nbsp; ')}</span>
+      </div>`
+    ).join('');
+    retryWrongBtn.classList.remove('hidden');
+  } else {
+    wrongList.classList.add('hidden');
+    retryWrongBtn.classList.add('hidden');
+  }
+
+  setTimeout(() => document.getElementById('btn-retry-all').focus(), 100);
+}
+
+document.getElementById('btn-retry-all').addEventListener('click', () => {
+  startQuiz(WORDS);
+});
+
+document.getElementById('btn-retry-wrong').addEventListener('click', () => {
+  const verbsToRetry = [...new Set(wrongItems.map(w => w.verb))];
+  const filtered = WORDS.filter(w => verbsToRetry.includes(w.verb));
+  startQuiz(filtered);
+});
+
+document.getElementById('btn-start').addEventListener('click', () => {
+  startQuiz(WORDS);
+});
+</script>
+</body>
+</html>
