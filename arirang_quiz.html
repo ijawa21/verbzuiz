@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>아리랑 퀴즈</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+  :root {
+    --hanji: #F5EFE0;
+    --ink: #1C1A15;
+    --cinnabar: #C0392B;
+    --gold: #B8912A;
+    --muted: #7A6F5A;
+    --card-bg: #FDFAF3;
+    --border: #D6CCB4;
+    --correct: #2E7D4F;
+    --wrong: #C0392B;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--hanji);
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(184,145,42,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(192,57,43,0.05) 0%, transparent 60%);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  html {
+    height: -webkit-fill-available;
+  }
+
+  /* ── 헤더 ── */
+  header {
+    width: 100%;
+    max-width: 480px;
+    padding: 28px 20px 16px;
+    text-align: center;
+  }
+
+  .logo-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .logo-wave {
+    width: 32px;
+    height: 16px;
+  }
+
+  h1 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--ink);
+  }
+
+  h1 span {
+    color: var(--cinnabar);
+  }
+
+  .subtitle {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── 진행 바 ── */
+  .progress-wrap {
+    width: 100%;
+    max-width: 480px;
+    padding: 0 20px 12px;
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--cinnabar));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── 카드 영역 ── */
+  .card-area {
+    width: 100%;
+    max-width: 480px;
+    padding: 0 20px;
+    flex: 1;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    min-height: 340px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 28px;
+    box-shadow: 0 2px 12px rgba(28,26,21,0.08), 0 1px 3px rgba(28,26,21,0.05);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s ease;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--cinnabar));
+  }
+
+  /* 카드 위 카테고리 뱃지 */
+  .card-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: var(--hanji);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    padding: 3px 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .question-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .question-text {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .arirang-name {
+    display: inline-block;
+    color: var(--cinnabar);
+    font-weight: 700;
+  }
+
+  /* 정답 영역 */
+  .answer-wrap {
+    margin-top: 24px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .tap-hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  .answer-box {
+    display: none;
+    background: rgba(184,145,42,0.08);
+    border: 1px solid rgba(184,145,42,0.25);
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
+    font-family: 'Noto Serif KR', serif;
+    letter-spacing: 0.04em;
+  }
+
+  .answer-box.revealed {
+    display: block;
+    animation: fadeIn 0.25s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── 채점 버튼 ── */
+  .judge-row {
+    display: none;
+    width: 100%;
+    max-width: 480px;
+    padding: 16px 20px 0;
+    gap: 12px;
+  }
+
+  .judge-row.visible {
+    display: flex;
+  }
+
+  .btn-judge {
+    flex: 1;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .btn-judge:active { transform: scale(0.96); }
+
+  .btn-o {
+    background: var(--correct);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(46,125,79,0.3);
+  }
+
+  .btn-x {
+    background: var(--wrong);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(192,57,43,0.3);
+  }
+
+  /* ── 화면 전환 ── */
+  .screen { display: none; width: 100%; max-width: 480px; padding: 20px; }
+  .screen.active { display: block; }
+
+  /* ── 시작 화면 ── */
+  #screen-start {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 20px 20px;
+  }
+
+  #screen-start.active { display: flex; }
+
+  .start-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+    width: 100%;
+    box-shadow: 0 2px 12px rgba(28,26,21,0.08);
+    margin-bottom: 20px;
+  }
+
+  .start-card h2 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+
+  .category-list {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .category-list li {
+    background: var(--hanji);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    padding: 5px 12px;
+    color: var(--muted);
+  }
+
+  .btn-start {
+    width: 100%;
+    padding: 18px;
+    background: var(--cinnabar);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 14px rgba(192,57,43,0.35);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: transform 0.1s;
+  }
+
+  .btn-start:active { transform: scale(0.98); }
+
+  /* 필터 체크박스 */
+  .filter-section { margin-bottom: 14px; }
+  .filter-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.06em;
+  }
+
+  .filter-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* iOS 13 이하 gap 폴백 */
+  @supports not (gap: 8px) {
+    .filter-checks { margin: -4px; }
+    .filter-checks label { margin: 4px; }
+  }
+
+  .filter-checks label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    background: var(--hanji);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .filter-checks input[type=checkbox] {
+    accent-color: var(--cinnabar);
+    width: 14px; height: 14px;
+  }
+
+  .filter-checks label.checked {
+    background: rgba(192,57,43,0.08);
+    border-color: var(--cinnabar);
+    color: var(--cinnabar);
+  }
+
+  /* ── 결과 화면 ── */
+  #screen-result { display: none; }
+  #screen-result.active { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+
+  .result-ring {
+    width: 120px;
+    height: 120px;
+    margin: 16px auto;
+  }
+
+  .result-score-text {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--cinnabar);
+  }
+
+  .result-desc {
+    font-size: 0.88rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 4px;
+    margin-bottom: 24px;
+  }
+
+  .wrong-list {
+    width: 100%;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .wrong-list-title {
+    padding: 12px 16px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    background: var(--hanji);
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.06em;
+  }
+
+  .wrong-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .wrong-item:last-child { border-bottom: none; }
+
+  .wrong-q { color: var(--muted); font-size: 0.8rem; margin-bottom: 2px; }
+  .wrong-a { color: var(--ink); font-weight: 600; }
+
+  .btn-retry {
+    width: 100%;
+    padding: 16px;
+    background: var(--ink);
+    color: var(--hanji);
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    margin-bottom: 10px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .btn-home {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* ── 퀴즈 래퍼 ── */
+  #screen-quiz { display: none; flex-direction: column; align-items: center; }
+  #screen-quiz.active { display: flex; }
+
+  /* 장식 점선 */
+  .deco-dots {
+    display: flex;
+    gap: 6px;
+    margin: 12px 0 0;
+  }
+
+  .deco-dots span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .deco-dots span.active-dot { background: var(--cinnabar); }
+</style>
+</head>
+<body>
+
+<!-- 헤더 (항상 표시) -->
+<header>
+  <div class="logo-mark">
+    <svg class="logo-wave" viewBox="0 0 32 16" fill="none">
+      <path d="M2 10 Q6 2 10 8 Q14 14 18 6 Q22 -2 26 8 Q29 14 30 10" stroke="#B8912A" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+    </svg>
+  </div>
+  <h1>아리<span>랑</span> 퀴즈</h1>
+  <p class="subtitle">4대 아리랑의 특징을 외워 보자</p>
+</header>
+
+<!-- ── 시작 화면 ── -->
+<div id="screen-start" class="active">
+  <div class="start-card">
+    <h2>출제 범위 선택</h2>
+
+    <div class="filter-section">
+      <p class="filter-label">아리랑 종류</p>
+      <div class="filter-checks" id="filter-arirang">
+        <label class="checked"><input type="checkbox" value="경기" checked> 경기</label>
+        <label class="checked"><input type="checkbox" value="정선" checked> 정선</label>
+        <label class="checked"><input type="checkbox" value="밀양" checked> 밀양</label>
+        <label class="checked"><input type="checkbox" value="진도" checked> 진도</label>
+      </div>
+    </div>
+
+    <div class="filter-section" style="margin-bottom:0">
+      <p class="filter-label">출제 항목</p>
+      <div class="filter-checks" id="filter-category">
+        <label class="checked"><input type="checkbox" value="민요의 기능" checked> 민요의 기능</label>
+        <label class="checked"><input type="checkbox" value="오늘날 유사한 활동" checked> 오늘날 유사한 활동</label>
+        <label class="checked"><input type="checkbox" value="토리" checked> 토리</label>
+        <label class="checked"><input type="checkbox" value="장단" checked> 장단</label>
+        <label class="checked"><input type="checkbox" value="시김새" checked> 시김새</label>
+        <label class="checked"><input type="checkbox" value="지역적 정서" checked> 지역적 정서</label>
+        <label class="checked"><input type="checkbox" value="핵심 단어" checked> 핵심 단어</label>
+        <label class="checked"><input type="checkbox" value="강조한 음악적 요소" checked> 강조한 음악적 요소</label>
+        <label class="checked"><input type="checkbox" value="발표용 한 줄 정리" checked> 발표용 한 줄 정리</label>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="startQuiz()">퀴즈 시작</button>
+</div>
+
+<!-- ── 퀴즈 화면 ── -->
+<div id="screen-quiz">
+  <div class="progress-wrap" style="width:100%;max-width:480px;">
+    <div class="progress-info">
+      <span id="prog-text">1 / 10</span>
+      <span id="score-text">⭕ 0 &nbsp; ❌ 0</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="card-area">
+    <div class="card" id="quiz-card" onclick="revealAnswer()">
+      <span class="card-badge" id="card-badge">토리</span>
+      <p class="question-label">문제</p>
+      <p class="question-text" id="question-text">경기 아리랑의 <span class="arirang-name">토리</span>는?</p>
+      <div class="answer-wrap">
+        <p class="tap-hint" id="tap-hint">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4c0-1.38-1.12-2.5-2.5-2.5S9.5 2.62 9.5 4v8.5L7 10l-1.5 1.5 4.5 4.5h5.5A4.5 4.5 0 0 0 20 11.5v-1c0-.83-.67-1.5-1.5-1.5H17V5.5c0-.83-.67-1.5-1.5-1.5S14.5 4.67 14.5 5.5V4z"/></svg>
+          탭해서 정답 확인
+        </p>
+        <div class="answer-box" id="answer-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="judge-row" id="judge-row">
+    <button class="btn-judge btn-o" onclick="judge(true)">⭕ 맞혔다</button>
+    <button class="btn-judge btn-x" onclick="judge(false)">❌ 틀렸다</button>
+  </div>
+
+  <div class="deco-dots" id="deco-dots"></div>
+</div>
+
+<!-- ── 결과 화면 ── -->
+<div id="screen-result">
+  <svg class="result-ring" id="result-ring" viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="50" fill="none" stroke="#E8DFC8" stroke-width="10"/>
+    <circle id="ring-arc" cx="60" cy="60" r="50" fill="none" stroke="#C0392B" stroke-width="10"
+      stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314"
+      transform="rotate(-90 60 60)" style="transition:stroke-dashoffset 0.8s ease"/>
+  </svg>
+  <div class="result-score-text" id="result-score-text">0 / 0</div>
+  <div class="result-desc" id="result-desc"></div>
+
+  <div class="wrong-list" id="wrong-list" style="display:none">
+    <div class="wrong-list-title">❌ 틀린 문제</div>
+    <div id="wrong-items"></div>
+  </div>
+
+  <div style="width:100%;max-width:480px;padding:0 0 20px;">
+    <button class="btn-retry" onclick="retryWrong()" id="btn-retry" style="display:none">틀린 문제만 다시 풀기</button>
+    <button class="btn-retry" onclick="startQuiz()" style="margin-bottom:10px">다시 풀기</button>
+    <button class="btn-home" onclick="goHome()">처음으로</button>
+  </div>
+</div>
+
+<script>
+// ── 데이터 ──
+const DATA = {
+  "경기": {
+    "민요의 기능":        "놀이·여흥",
+    "오늘날 유사한 활동": "축제, 콘서트에서 함께 노래 부르기",
+    "토리":               "경기토리",
+    "장단":               "세마치장단",
+    "시김새":             "부드럽고 맑음",
+    "지역적 정서":        "밝고 세련됨",
+    "핵심 단어":          "밝음, 흥",
+    "강조한 음악적 요소": "부드러운 선율",
+    "발표용 한 줄 정리":  "밝고 부드러운 선율"
+  },
+  "정선": {
+    "민요의 기능":        "삶의 애환 표현",
+    "오늘날 유사한 활동": "SNS에 고민·감정 글 올리기",
+    "토리":               "메나리토리",
+    "장단":               "엇모리 또는 자유로운 장단",
+    "시김새":             "꺾는 소리 사용",
+    "지역적 정서":        "소박하고 애절함",
+    "핵심 단어":          "한, 그리움",
+    "강조한 음악적 요소": "애절한 가락",
+    "발표용 한 줄 정리":  "애절한 정서와 한"
+  },
+  "밀양": {
+    "민요의 기능":        "노동 후 흥 돋움",
+    "오늘날 유사한 활동": "스포츠 응원가 부르기",
+    "토리":               "메나리토리",
+    "장단":               "세마치장단",
+    "시김새":             "힘차게 밀어 올림",
+    "지역적 정서":        "씩씩하고 활기참",
+    "핵심 단어":          "활력, 역동성",
+    "강조한 음악적 요소": "빠르고 힘찬 리듬",
+    "발표용 한 줄 정리":  "빠르고 흥겨운 리듬"
+  },
+  "진도": {
+    "민요의 기능":        "공동체 화합",
+    "오늘날 유사한 활동": "지역 축제·단체 공연",
+    "토리":               "육자배기토리",
+    "장단":               "중중모리장단",
+    "시김새":             "굵고 깊게 흔듦",
+    "지역적 정서":        "한과 흥이 공존",
+    "핵심 단어":          "한, 흥",
+    "강조한 음악적 요소": "진한 시김새",
+    "발표용 한 줄 정리":  "깊은 시김새와 한·흥의 조화"
+  }
+};
+
+// ── 상태 ──
+let queue = [];
+let current = 0;
+let correct = 0;
+let wrong = 0;
+let wrongItems = [];
+let retryMode = false;
+
+// ── 유틸 ──
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function show(id) {
+  ['screen-start','screen-quiz','screen-result'].forEach(s => {
+    const el = document.getElementById(s);
+    el.classList.remove('active');
+  });
+  document.getElementById(id).classList.add('active');
+}
+
+// ── 체크박스 스타일 동기화 ──
+document.querySelectorAll('.filter-checks input[type=checkbox]').forEach(cb => {
+  cb.addEventListener('change', function() {
+    this.closest('label').classList.toggle('checked', this.checked);
+  });
+});
+
+// ── 시작 ──
+function startQuiz() {
+  const selectedArirang = [...document.querySelectorAll('#filter-arirang input:checked')].map(i => i.value);
+  const selectedCat = [...document.querySelectorAll('#filter-category input:checked')].map(i => i.value);
+
+  if (selectedArirang.length === 0 || selectedCat.length === 0) {
+    alert('아리랑과 항목을 각각 하나 이상 선택해 주세요.');
+    return;
+  }
+
+  queue = [];
+  selectedArirang.forEach(arirang => {
+    selectedCat.forEach(cat => {
+      if (DATA[arirang] && DATA[arirang][cat]) {
+        queue.push({ arirang, cat, answer: DATA[arirang][cat] });
+      }
+    });
+  });
+
+  shuffle(queue);
+  current = 0; correct = 0; wrong = 0; wrongItems = [];
+  retryMode = false;
+
+  renderDots();
+  renderQuestion();
+  show('screen-quiz');
+}
+
+function retryWrong() {
+  if (wrongItems.length === 0) return;
+  queue = shuffle([...wrongItems.map(w => ({...w}))]);
+  current = 0; correct = 0; wrong = 0; wrongItems = [];
+  retryMode = true;
+  renderDots();
+  renderQuestion();
+  show('screen-quiz');
+}
+
+function goHome() {
+  show('screen-start');
+}
+
+// ── 문제 렌더 ──
+function renderQuestion() {
+  const q = queue[current];
+  document.getElementById('card-badge').textContent = q.cat;
+  document.getElementById('question-text').innerHTML =
+    `<span class="arirang-name">${q.arirang} 아리랑</span>의 <em style="font-style:normal;color:var(--gold)">${q.cat}</em>는?`;
+  document.getElementById('answer-box').textContent = '';
+  document.getElementById('answer-box').classList.remove('revealed');
+  document.getElementById('tap-hint').style.display = 'flex';
+  document.getElementById('judge-row').classList.remove('visible');
+
+  updateProgress();
+  renderDots();
+}
+
+function updateProgress() {
+  const total = queue.length;
+  const done = current;
+  document.getElementById('prog-text').textContent = `${current + 1} / ${total}`;
+  document.getElementById('score-text').textContent = `⭕ ${correct}  ❌ ${wrong}`;
+  document.getElementById('prog-fill').style.width = `${(done / total) * 100}%`;
+}
+
+function renderDots() {
+  const el = document.getElementById('deco-dots');
+  const total = Math.min(queue.length, 12);
+  el.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const s = document.createElement('span');
+    if (i === current) s.classList.add('active-dot');
+    el.appendChild(s);
+  }
+}
+
+// ── 정답 공개 ──
+function revealAnswer() {
+  const box = document.getElementById('answer-box');
+  if (box.classList.contains('revealed')) return; // 이미 공개됨
+  box.textContent = queue[current].answer;
+  box.classList.add('revealed');
+  document.getElementById('tap-hint').style.display = 'none';
+  document.getElementById('judge-row').classList.add('visible');
+}
+
+// ── 채점 ──
+function judge(isCorrect) {
+  if (isCorrect) {
+    correct++;
+  } else {
+    wrong++;
+    wrongItems.push({...queue[current]});
+  }
+  current++;
+  if (current >= queue.length) {
+    showResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+// ── 결과 ──
+function showResult() {
+  const total = queue.length;
+  const pct = total > 0 ? correct / total : 0;
+
+  document.getElementById('result-score-text').textContent = `${correct} / ${total}`;
+
+  let desc = '';
+  if (pct === 1)       desc = '완벽해! 다 맞혔어 🎉';
+  else if (pct >= 0.8) desc = '잘했어! 조금만 더 다듬으면 완벽';
+  else if (pct >= 0.5) desc = '절반 이상! 틀린 것만 다시 보자';
+  else                 desc = '조금 더 연습이 필요해. 다시 도전!';
+  document.getElementById('result-desc').textContent = desc;
+
+  // 원형 그래프
+  const offset = 314 * (1 - pct);
+  document.getElementById('ring-arc').style.strokeDashoffset = offset;
+  document.getElementById('ring-arc').style.stroke = pct === 1 ? '#2E7D4F' : '#C0392B';
+
+  // 틀린 목록
+  const wl = document.getElementById('wrong-list');
+  const wi = document.getElementById('wrong-items');
+  const btnRetry = document.getElementById('btn-retry');
+
+  if (wrongItems.length > 0) {
+    wi.innerHTML = wrongItems.map(w =>
+      `<div class="wrong-item">
+        <div class="wrong-q">${w.arirang} 아리랑 · ${w.cat}</div>
+        <div class="wrong-a">${w.answer}</div>
+      </div>`
+    ).join('');
+    wl.style.display = 'block';
+    btnRetry.style.display = 'block';
+  } else {
+    wl.style.display = 'none';
+    btnRetry.style.display = 'none';
+  }
+
+  show('screen-result');
+  // 애니메이션 트리거
+  setTimeout(() => {
+    document.getElementById('ring-arc').style.strokeDashoffset = offset;
+  }, 50);
+}
+</script>
+</body>
+</html>
