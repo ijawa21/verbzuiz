@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>카페 POS 메뉴 연습</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #1b1b1b;
+    font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    color: #222;
+    user-select: none;
+  }
+  #app { max-width: 760px; margin: 0 auto; padding-bottom: 24px; }
+
+  header {
+    background: #111;
+    color: #eee;
+    padding: 10px 14px 14px;
+  }
+  header h1 {
+    font-size: 15px;
+    margin: 0 0 8px;
+    font-weight: 500;
+    color: #aaa;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 10px;
+  }
+  .stats span b { color: #f2c14e; font-weight: 700; }
+
+  .order-box {
+    background: #fff8e8;
+    border: 2px solid #f2c14e;
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .order-label {
+    font-size: 12px;
+    color: #b8860b;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .order-items {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .order-chip {
+    background: #fff;
+    border: 1px solid #e0c060;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+    transition: all .2s;
+    cursor: pointer;
+  }
+  .order-chip:active { transform: scale(.93); background: #fff3cf; }
+  .order-chip .qty { color: #c0392b; margin-left: 3px; }
+  .order-chip.done {
+    background: #eafbea;
+    border-color: #7bc47f;
+    color: #999;
+    text-decoration: line-through;
+  }
+  .order-hint {
+    font-size: 11px;
+    color: #b8860b;
+    margin-top: 6px;
+    opacity: .8;
+  }
+
+  .feedback {
+    min-height: 20px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 6px;
+  }
+  .feedback.correct { color: #2ecc71; }
+  .feedback.wrong { color: #ff5c5c; }
+
+  /* Tabs - two rows, exactly like the real POS */
+  .tabs {
+    display: grid;
+    gap: 4px;
+    padding: 8px 8px 0;
+  }
+  .tabs .row {
+    display: grid;
+    gap: 4px;
+    grid-template-columns: repeat(var(--cols), 1fr);
+  }
+  .tab-btn {
+    background: #3a3a3a;
+    color: #ddd;
+    border: none;
+    border-radius: 4px;
+    padding: 11px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .tab-btn.active { background: #d9720f; color: #fff; }
+  .tab-btn.empty-cat { opacity: .5; }
+
+  /* Grid: fixed 5 columns x 7 rows, matching photographed layout (incl. blank cells) */
+  .grid-wrap { background: #2b2b2b; padding: 8px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .cell {
+    min-height: 58px;
+  }
+  .item-btn {
+    width: 100%; height: 100%;
+    background: #f4f4f4;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 6px 3px 6px;
+    text-align: center;
+    font-size: 11.5px;
+    line-height: 1.2;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: transform .08s, background .15s;
+  }
+  .item-btn:active { transform: scale(.94); }
+  .item-btn .price { color: #b03030; font-weight: 700; margin-top: 3px; font-size: 11.5px; }
+  .item-btn.flash-correct { background: #b8f0c0 !important; }
+  .item-btn.flash-wrong { background: #ffb3b3 !important; }
+  .item-btn.deco { color: #555; }
+  .item-btn.hint-flash {
+    outline: 3px solid #2196f3;
+    outline-offset: 1px;
+    animation: hintPulse .8s ease-out 2;
+    z-index: 1;
+    position: relative;
+  }
+  @keyframes hintPulse {
+    0% { box-shadow: 0 0 0 0 rgba(33,150,243,.9); }
+    70% { box-shadow: 0 0 0 10px rgba(33,150,243,0); }
+    100% { box-shadow: 0 0 0 0 rgba(33,150,243,0); }
+  }
+
+  .empty-msg {
+    grid-column: 1 / -1;
+    color: #888;
+    text-align: center;
+    font-size: 13px;
+    padding: 30px 10px;
+  }
+
+  /* Pagination for 빵 tab - rendered inline inside the grid's empty last row */
+  .pager-btn {
+    background: #444 !important;
+    color: #eee !important;
+    font-weight: 700;
+  }
+  .pager-btn:disabled { opacity: .35; }
+  .page-label-inline {
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 12px;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    padding: 12px 8px 4px;
+  }
+  .reset-btn {
+    background: #444;
+    color: #eee;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .reset-btn:active { background: #555; }
+
+  .end-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: #eee;
+  }
+  .end-screen h2 {
+    font-size: 20px;
+    margin: 0 0 18px;
+    color: #f2c14e;
+  }
+  .end-screen .result-line {
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+  .end-screen .result-line b { color: #fff; }
+  .end-screen .accuracy {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 26px;
+  }
+  .end-screen .restart-btn {
+    background: #d9720f;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .end-screen .restart-btn:active { background: #b85e0a; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>☕ 카페 POS 메뉴 찾기 연습</h1>
+    <div class="stats">
+      <span>문제 <b id="stat-round">1</b>/<b id="stat-total">10</b></span>
+      <span>정답완료 <b id="stat-correct">0</b></span>
+      <span>오답 <b id="stat-wrong">0</b></span>
+    </div>
+    <div class="order-box">
+      <div class="order-label">고객 주문</div>
+      <div class="order-items" id="order-items"></div>
+      <div class="order-hint">주문을 탭하면 메뉴 위치를 알려줘요</div>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </header>
+
+  <div id="game-area">
+    <div class="tabs" id="tabs"></div>
+    <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+
+    <div class="controls">
+      <button class="reset-btn" id="reset-btn">처음부터 다시</button>
+    </div>
+  </div>
+
+  <div class="end-screen" id="end-screen">
+    <h2>10문제 완료!</h2>
+    <div class="result-line">정답완료 <b id="end-correct">10</b> / 10</div>
+    <div class="result-line">오답 <b id="end-wrong">0</b>회</div>
+    <div class="accuracy" id="end-accuracy"></div>
+    <button class="restart-btn" id="restart-btn">다시 시작</button>
+  </div>
+</div>
+
+<script>
+/* ---------- 메뉴 데이터 : 사진 속 POS 배치를 그대로 재현 (5열 x 7행, 빈 칸도 실제 위치대로) ---------- */
+function I(name, price) { return { name, price }; }
+function D(label, value) { return { deco: true, label, value }; } // 결제/옵션용 버튼(주문 대상 아님, 위치만 재현)
+const _ = null;
+
+const PAGES = {
+  "빵": [
+    // page 1 (원래 사진 6 / 기존 3페이지)
+    [
+      [I("알버터치아바타",4900), I("알버터크루아상",5100), _, D("포장종이상자",1000), D("쇼핑백",100)],
+      [I("무화과깜빠뉴",7800), I("통밀깜빠뉴",4900), I("모카빵",5500), I("모카번",3200), D("만원묶음",10000)],
+      [I("밀크모닝빵",4000), I("호두바게트",4200), I("소금빵",3800), I("왕피자빵",5800), I("러스크(대)",5000)],
+      [I("올리브치아바타",4900), _, I("햄치즈롤",4500), I("슈크림큐브토스트",3000), I("슈크림빵",2800)],
+      [I("찹쌀빵",5300), _, I("쑥쫀드기",4900), I("마늘빵",5100), I("시몬카스테라",5500)],
+      [I("초코생크림케익(조각)",5500), I("오트밀쿠키",4000), _, I("수플레치즈케이크",8500), _],
+      [_, _, _, _, _]
+    ],
+    // page 2 (사진 5)
+    [
+      [I("밀크버터식빵",5800), I("소금식빵",5800), _, _, _],
+      [I("옥수수식빵",6500), I("단호박식빵",6400), I("보늬밤식빵",7000), _, D("만원묶음",10000)],
+      [_, _, _, _, _],
+      [_, _, _, _, _],
+      [I("호두앙금빵",3200), I("소보루빵",2800), _, I("초코소금빵",4300), I("바질토마토소금빵",4900)],
+      [_, I("크림소보로",3300), _, _, I("크림치즈마늘소금빵",4900)],
+      [_, _, _, _, _]
+    ],
+    // page 3 (원래 사진 4 / 기존 1페이지)
+    [
+      [I("불가리아데니쉬식빵",7200), I("시나몬데니쉬식빵",7500), _, _, _],
+      [_, _, _, _, D("만원묶음",10000)],
+      [_, _, _, _, _],
+      [I("크루아상",4500), I("초코크루아상",5100), _, _, D("기타/싱가상품",null)],
+      [I("뺑오쇼콜라",5100), I("블루베리페스츄리",4500), I("누네띠네",4500), _, _],
+      [_, _, _, _, _],
+      [_, _, _, _, _]
+    ]
+  ],
+  "쿠키&스콘": [
+    [
+      [I("스모어쿠키",3500), I("스콘",3600), I("바닐라사브레",4200), _, _],
+      [I("러스크(대)",5000), _, I("레몬얼그레이",4500), _, _],
+      [I("오트밀쿠키",4000), _, _, _, _],
+      [_, _, _, _, _],
+      [_, _, _, _, _],
+      [_, _, _, _, _],
+      [_, _, _, _, _]
+    ]
+  ],
+  "케익": [ [[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_]] ],
+  "☆기타★": [ [[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_]] ],
+  "커피류": [
+    [
+      [I("에스프레소",3800), I("아메리카노[ICE]",4200), I("카페라떼[ICE]",4700), I("카페모카[ICE]",5200), I("세계로마트 HOT",2000)],
+      [_, I("아메리카노[HOT]",4200), I("카페라떼[HOT]",4700), I("카페모카[HOT]",5200), I("세계로마트 ICE",2000)],
+      [I("바닐라라떼[ICE]",5200), I("카라멜마끼아또[ICE]",5200), I("연유라떼[ICE]",5300), I("벌꿀라떼[ICE]",5200), _],
+      [I("바닐라라떼[HOT]",5200), I("카라멜마끼아또[HOT]",5200), I("연유라떼[HOT]",5300), I("벌꿀라떼[HOT]",5200), D("연하게",0)],
+      [I("버터크림폼아메리카노[ICE]",5500), I("버터크림폼카페라떼[ICE]",5800), _, D("디카페인",500), D("먹고가요",0)],
+      [_, _, _, D("샷추가",500), D("가져가요",0)],
+      [_, _, _, _, _]
+    ]
+  ],
+  "티&비버리지": [
+    [
+      [I("밀크티[ICE]",5800), I("초콜렛밀크[ICE]",5200), I("녹차밀크[ICE]",5200), I("바나나밀크[ICE]",5200), I("리얼딸기밀크[ICE]",5000)],
+      [I("밀크티[HOT]",5800), I("초콜렛밀크[HOT]",5200), I("녹차밀크[HOT]",5200), I("바나나밀크[HOT]",5200), _],
+      [_, _, _, _, _],
+      [_, _, _, _, _],
+      [I("복숭아아이스티",4300), I("레몬티[HOT]",4600), _, I("노아주스",5700), D("먹고가요",0)],
+      [_, I("자몽티[HOT]",4600), _, I("분다버그",4700), D("가져가요",0)],
+      [_, I("한라봉티[HOT]",4600), _, _, _]
+    ]
+  ],
+  "티백&에이드&스무디": [ [[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_],[_,_,_,_,_]] ]
+};
+
+const TAB_ROWS = [
+  ["빵","쿠키&스콘","케익","☆기타★"],
+  ["커피류","티&비버리지","티백&에이드&스무디"]
+];
+
+function isEmptyCategory(cat) {
+  return PAGES[cat].every(page => page.every(row => row.every(cell => cell === null)));
+}
+
+// 주문 생성용 고유 메뉴 풀 (deco 버튼 제외, 이름 중복 제거)
+const POOL = (() => {
+  const map = new Map();
+  Object.values(PAGES).forEach(pages => pages.forEach(page => page.forEach(row => row.forEach(cell => {
+    if (cell && !cell.deco && !map.has(cell.name)) map.set(cell.name, cell.price);
+  }))));
+  return Array.from(map.entries()).map(([name, price]) => ({ name, price }));
+})();
+
+// 힌트용: 메뉴 이름 -> 어느 탭/몇 페이지에 있는지 (같은 이름이 여러 탭에 있으면 처음 찾은 위치)
+const ITEM_LOCATIONS = (() => {
+  const loc = new Map();
+  Object.entries(PAGES).forEach(([tab, pages]) => {
+    pages.forEach((page, pageIdx) => {
+      page.forEach(row => row.forEach(cell => {
+        if (cell && !cell.deco && !loc.has(cell.name)) {
+          loc.set(cell.name, { tab, page: pageIdx });
+        }
+      }));
+    });
+  });
+  return loc;
+})();
+
+// 베이커리카페 특성상 매 주문에 빵 카테고리(3페이지 전체) 메뉴가 최소 1개는 들어가도록
+const BREAD_NAMES = (() => {
+  const set = new Set();
+  PAGES["빵"].forEach(page => page.forEach(row => row.forEach(cell => {
+    if (cell && !cell.deco) set.add(cell.name);
+  })));
+  return set;
+})();
+const BREAD_POOL = POOL.filter(item => BREAD_NAMES.has(item.name));
+
+/* ---------- 상태 ---------- */
+const TOTAL_ROUNDS = 10;
+let activeTab = "빵";
+let pageIndex = 0;
+let order = [];
+let round = 1, correctCount = 0, wrongCount = 0;
+let locked = false;
+
+const el = {
+  tabs: document.getElementById('tabs'),
+  grid: document.getElementById('grid'),
+  orderItems: document.getElementById('order-items'),
+  feedback: document.getElementById('feedback'),
+  statRound: document.getElementById('stat-round'),
+  statTotal: document.getElementById('stat-total'),
+  statCorrect: document.getElementById('stat-correct'),
+  statWrong: document.getElementById('stat-wrong'),
+  gameArea: document.getElementById('game-area'),
+  endScreen: document.getElementById('end-screen'),
+  endCorrect: document.getElementById('end-correct'),
+  endWrong: document.getElementById('end-wrong'),
+  endAccuracy: document.getElementById('end-accuracy'),
+  restartBtn: document.getElementById('restart-btn'),
+};
+el.statTotal.textContent = TOTAL_ROUNDS;
+
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+// Fisher-Yates: Array.sort(() => Math.random()-0.5) 방식은 편향이 있어서 제대로 된 셔플 사용
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = randInt(0, i);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function newOrder() {
+  const count = randInt(1, 3);
+  // 빵 메뉴를 최소 1개 보장
+  const breadPick = BREAD_POOL[randInt(0, BREAD_POOL.length - 1)];
+  const selected = [breadPick];
+  if (count > 1) {
+    const rest = shuffle(POOL.filter(item => item.name !== breadPick.name)).slice(0, count - 1);
+    selected.push(...rest);
+  }
+  order = shuffle(selected) // 빵 항목이 항상 맨 앞에 나오지 않도록 순서 섞기
+    .map(item => ({ name: item.name, need: randInt(1, 3), done: 0 }));
+  renderOrder();
+  el.feedback.textContent = '';
+  el.feedback.className = 'feedback';
+}
+
+function renderOrder() {
+  el.orderItems.innerHTML = '';
+  order.forEach(o => {
+    const chip = document.createElement('div');
+    chip.className = 'order-chip' + (o.done >= o.need ? ' done' : '');
+    chip.innerHTML = `${o.name} <span class="qty">${o.done}/${o.need}</span>`;
+    chip.onclick = () => goToItem(o.name);
+    el.orderItems.appendChild(chip);
+  });
+}
+
+// 주문 칩을 누르면 해당 메뉴가 있는 탭/페이지로 이동해서 버튼을 하이라이트
+function goToItem(name) {
+  const loc = ITEM_LOCATIONS.get(name);
+  if (!loc) return;
+  activeTab = loc.tab;
+  pageIndex = loc.page;
+  renderTabs();
+  renderGrid();
+  requestAnimationFrame(() => {
+    const btn = [...el.grid.querySelectorAll('.item-btn')].find(b => b.dataset.hintName === name);
+    if (!btn) return;
+    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    btn.classList.add('hint-flash');
+    setTimeout(() => btn.classList.remove('hint-flash'), 1600);
+  });
+}
+
+function renderTabs() {
+  el.tabs.innerHTML = '';
+  TAB_ROWS.forEach(rowCats => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'row';
+    rowDiv.style.setProperty('--cols', rowCats.length);
+    rowCats.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn' + (cat === activeTab ? ' active' : '') + (isEmptyCategory(cat) ? ' empty-cat' : '');
+      btn.textContent = cat;
+      btn.onclick = () => { activeTab = cat; pageIndex = 0; renderTabs(); renderGrid(); };
+      rowDiv.appendChild(btn);
+    });
+    el.tabs.appendChild(rowDiv);
+  });
+}
+
+function renderGrid() {
+  el.grid.innerHTML = '';
+  const pages = PAGES[activeTab];
+  const rows = pages[pageIndex] || pages[0];
+  const isPaged = pages.length > 1;
+  const lastRowIdx = rows.length - 1;
+
+  if (isEmptyCategory(activeTab)) {
+    const msg = document.createElement('div');
+    msg.className = 'empty-msg';
+    msg.textContent = '이 카테고리는 사진에 없어서 준비되지 않았어요.';
+    el.grid.appendChild(msg);
+    return;
+  }
+
+  rows.forEach((row, rIdx) => {
+    row.forEach((cell, cIdx) => {
+      const cellDiv = document.createElement('div');
+      cellDiv.className = 'cell';
+
+      // 빵 탭의 마지막(빈) 줄에 페이지 표시/이전/다음 버튼을 그 자리에 그대로 배치
+      if (isPaged && rIdx === lastRowIdx && cIdx === 2) {
+        const label = document.createElement('div');
+        label.className = 'page-label-inline';
+        label.textContent = `${pageIndex + 1} / ${pages.length}`;
+        cellDiv.appendChild(label);
+      } else if (isPaged && rIdx === lastRowIdx && cIdx === 3) {
+        const btn = document.createElement('button');
+        btn.className = 'item-btn pager-btn';
+        btn.textContent = '◁ 이전';
+        btn.disabled = pageIndex === 0;
+        btn.onclick = () => { if (pageIndex > 0) { pageIndex--; renderGrid(); } };
+        cellDiv.appendChild(btn);
+      } else if (isPaged && rIdx === lastRowIdx && cIdx === 4) {
+        const btn = document.createElement('button');
+        btn.className = 'item-btn pager-btn';
+        btn.textContent = '다음 ▷';
+        btn.disabled = pageIndex === pages.length - 1;
+        btn.onclick = () => { if (pageIndex < pages.length - 1) { pageIndex++; renderGrid(); } };
+        cellDiv.appendChild(btn);
+      } else if (cell) {
+        const btn = document.createElement('button');
+        btn.className = 'item-btn' + (cell.deco ? ' deco' : '');
+        if (!cell.deco) btn.dataset.hintName = cell.name;
+        const priceHtml = (cell.deco ? (cell.value === null ? '' : `<div class="price">${cell.value.toLocaleString()}</div>`)
+                                      : `<div class="price">${cell.price.toLocaleString()}</div>`);
+        btn.innerHTML = `<div>${cell.deco ? cell.label : cell.name}</div>${priceHtml}`;
+        btn.onclick = () => handleTap(cell.deco ? cell.label : cell.name, btn);
+        cellDiv.appendChild(btn);
+      }
+      el.grid.appendChild(cellDiv);
+    });
+  });
+}
+
+function handleTap(name, btnEl) {
+  if (locked) return;
+  const entry = order.find(o => o.name === name && o.done < o.need);
+  if (entry) {
+    entry.done++;
+    flash(btnEl, true);
+    renderOrder();
+    const allDone = order.every(o => o.done >= o.need);
+    if (allDone) {
+      correctCount++;
+      el.statCorrect.textContent = correctCount;
+      locked = true;
+      if (correctCount >= TOTAL_ROUNDS) {
+        showFeedback('정답! 10문제 완료!', 'correct');
+        setTimeout(endGame, 700);
+      } else {
+        showFeedback('정답! 다음 주문 준비 중...', 'correct');
+        setTimeout(() => {
+          round++;
+          el.statRound.textContent = round;
+          locked = false;
+          newOrder();
+        }, 900);
+      }
+    }
+  } else {
+    wrongCount++;
+    el.statWrong.textContent = wrongCount;
+    flash(btnEl, false);
+    showFeedback(`"${name}" 은(는) 이번 주문에 없어요`, 'wrong');
+  }
+}
+
+function flash(btnEl, correct) {
+  btnEl.classList.add(correct ? 'flash-correct' : 'flash-wrong');
+  setTimeout(() => btnEl.classList.remove(correct ? 'flash-correct' : 'flash-wrong'), 250);
+}
+
+function showFeedback(text, type) {
+  el.feedback.textContent = text;
+  el.feedback.className = 'feedback ' + type;
+  if (type === 'wrong') {
+    setTimeout(() => { if (el.feedback.textContent === text) { el.feedback.textContent = ''; el.feedback.className = 'feedback'; } }, 1200);
+  }
+}
+
+function endGame() {
+  el.gameArea.style.display = 'none';
+  el.endScreen.style.display = 'flex';
+  el.endCorrect.textContent = correctCount;
+  el.endWrong.textContent = wrongCount;
+  const totalTaps = correctCount + wrongCount;
+  const acc = totalTaps > 0 ? Math.round((correctCount / totalTaps) * 100) : 100;
+  el.endAccuracy.textContent = `정확도 ${acc}%`;
+}
+
+function startGame() {
+  round = 1; correctCount = 0; wrongCount = 0; locked = false;
+  el.statRound.textContent = round;
+  el.statCorrect.textContent = correctCount;
+  el.statWrong.textContent = wrongCount;
+  el.endScreen.style.display = 'none';
+  el.gameArea.style.display = 'block';
+  newOrder();
+}
+
+document.getElementById('reset-btn').onclick = startGame;
+el.restartBtn.onclick = startGame;
+
+/* ---------- 초기화 ---------- */
+renderTabs();
+renderGrid();
+newOrder();
+</script>
+</body>
+</html>
